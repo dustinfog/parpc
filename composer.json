@@ -1,0 +1,23 @@
+{
+    "name": "parpc",
+    "description": "A parallel rpc library for PHP",
+    "type": "library",
+    "time": "2015-01-22",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "zhandong.pan",
+            "email": "xodger@163.com",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "email": "zhandong.pan",
+        "qq": "15102144"
+    },
+    "autoload": {
+        "psr-4": {
+            "Parpc\\": "src/Parpc"
+        }
+    }
+}
