@@ -18,6 +18,7 @@ class RemoteProcedureRouter
      * @var SecurityValidator[]
      */
     private $securityValidators = array();
+    private $instances = array();
 
     /**
      * @param SecurityValidator $validator
@@ -27,9 +28,24 @@ class RemoteProcedureRouter
         $this->securityValidators[] = $validator;
     }
 
+    public function registerInstance($instance, $className = null)
+    {
+        if ($className == null) {
+            $className = get_class($instance);
+        }
+
+        if (empty($className) || !($instance instanceof $className)) {
+            throw new RemoteException('invalid instance');
+        }
+
+        $this->instances[$className] = $instance;
+    }
+
     public function route()
     {
         ob_start();
+
+        set_exception_handler(array($this, 'exceptionHandler'));
 
         $remoteProcedure = new RemoteProcedure();
         $remoteProcedure->unserialize(file_get_contents("php://input"));
@@ -58,6 +74,10 @@ class RemoteProcedureRouter
         echo $serializeResponse;
     }
 
+    public function exceptionHandler($exception) {
+        echo serialize(new RemoteResponse($exception, false, ''));
+    }
+
     /**
      * @param RemoteProcedure $procedure
      * @return RemoteException
@@ -75,7 +95,7 @@ class RemoteProcedureRouter
 
     /**
      * @param RemoteProcedure $remoteProcedure
-     * @return callback
+     * @return callable
      */
     private function getLocalProcedure(RemoteProcedure $remoteProcedure)
     {
@@ -83,8 +103,15 @@ class RemoteProcedureRouter
         $remoteObject = $remoteProcedure->getObject();
 
         if ($remoteObject != null) {
-            $class = new \ReflectionClass($remoteObject->getClassName());
-            $localObject = $class->newInstanceArgs($remoteObject->getConstructArgs());
+            $className = $remoteObject->getClassName();
+
+            if (!empty($this->instances[$className])) {
+                $localObject = $this->instances[$className];
+            } else {
+                $class = new \ReflectionClass($className);
+                $localObject = $class->newInstanceArgs($remoteObject->getConstructArgs());
+            }
+
             return array($localObject, $procedureName);
         }
 
